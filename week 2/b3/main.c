@@ -1,8 +1,12 @@
  /*
  * B3
- *
+ * Assignment: Het aansturen van een 7 segment display. Hierop toon je hexadecimale getallen.
+ * Ook kan je met ISR_INT0 naar het volgende hexadecimaal gaan en met ISR_INT1 naar de vorige.
+ * Als ze allebei te gelijk worden ingedrukt wordt de display weer naar 0 gezet.
  * Created: 16-2-2016 12:33:04
- * Author : remco
+ * Author : Jannick van Ballegooijen, 
+ *			Tim van Lieshout, 
+ *			Remco Vorthoren
  */ 
 
 #define F_CPU 8000000UL

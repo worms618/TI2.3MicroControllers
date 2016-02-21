@@ -1,8 +1,11 @@
 /*
- * B4.c
- *
+ * B4
+ * Assignment: Het maken van een 7 segment lichteffect met een lookup tabel.
+ * Er kan ook d.m.v. INT0_vect worden gewisselt tussen verschillende lichteffecten.
  * Created: 21-2-2016 19:32:44
- * Author : remco
+ * Author : Jannick van Ballegooijen, 
+ *			Tim van Lieshout, 
+ *			Remco Vorthoren
  */ 
 
 #define F_CPU 8000000UL
