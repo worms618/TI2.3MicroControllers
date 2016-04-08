@@ -37,7 +37,7 @@ int board[8][8];
 	}		
  }
 
- void show_smiley(void)
+ void show_happySmiley(void)
  {
 	int smiley[8][8] =  
 	{
@@ -59,6 +59,30 @@ int board[8][8];
 		}
 	}
 	write_board_data();
+ }
+
+ void show_sadSmiley(void)
+ {
+	 int smiley[8][8] =
+	{
+		{0,0,1,1,1,1,0,0},
+		{0,1,0,0,0,0,1,0},
+		{1,0,1,0,0,1,0,1},
+		{1,0,0,0,0,0,0,1},
+		{1,0,0,1,1,0,0,1},
+		{1,0,1,0,0,1,0,1},
+		{0,1,0,0,0,0,1,0},
+		{0,0,1,1,1,1,0,0}
+	};
+
+	 for(int row = 0; row < 8; row++)
+	 {
+		 for(int column = 0; column < 8; column++)
+		 {
+			 board[row][column] = smiley[row][column];
+		 }
+	 }
+	 write_board_data();
  }
 
  void write_board_data(void)

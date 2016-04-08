@@ -16,5 +16,6 @@
  
  void setLed(int,int,int);
  void write_board_data(void);
- void show_smiley(void);
+ void show_happySmiley(void);
+ void show_sadSmiley(void);
  #endif

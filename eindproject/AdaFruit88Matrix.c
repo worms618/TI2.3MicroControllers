@@ -11,10 +11,12 @@
  
  #include "board.h"
  #include "ledmatrix.h"
+ #include "Lcd.h"
  
  #define Bit(x) (1 << x) //bit position
  #define PlayState 0
- #define Winstate 1
+ #define WinState 1
+ #define LossState 2
 
  //play state, playing the game, win state have won the game.
  int state;
@@ -24,25 +26,36 @@
 
  //bullet fired -1 => not fired, >= 0 fired
  //bullet way 6, 1 position a top player, 0 line of targets, cap [6,0] 
- int bulletFired = -1,bulletWay = 6;
+ int bulletFired = -1,bulletWay = 6,bulletCount = 20;
  
  //lowest row, target row, cap[0,7]
  int target[] = {1,1,1,1,1,1,1,1};
+
+ //keep score
+ int score = 0;
 
  void initAdaFruit88Matrix(void);
 
  void initPlayState(void);
  void playState(void);
  void winState(void);
+ void lossState(void);
 
  void resetPlayer(void);
- void playerLogic(void);
+ void updatePlayerPosition(void);
 
- void resetBullet(void);
- void bulletLogic(void);
+ void resetBulletPosition(void);
+ void resetBulletCount(void);
+ void updateBullet(void);
 
  void resetTargetLine(void);
  void fillTargetLineToBoard(void);
+
+ void setLcd(void);
+ void writeScoreToLcd(void);
+ void writeResultToLcd(void);
+ void writeRemainingBullets(void);
+ void writeMessageToLcd(char *str);
   
  /******************************************************************/
 void wait( int ms )
@@ -65,9 +78,10 @@ Version :    	DMK, Initial code
 //interrupt 7, button PE7
 ISR(INT7_vect)
 {
-	if (bulletFired == -1)
+	if (bulletFired == -1 && bulletCount > 0)
 	{
 		bulletFired = player;
+		bulletCount --;		
 	}
 	//bullet = player;
 	//PORTA ^= Bit(2);
@@ -78,8 +92,9 @@ void initAdaFruit88Matrix()
 {
 	twi_init();
 	initBoard();
+	init_Lcd_4_bit_mode();
 	
-	//DDRA = 0b11111111;
+	DDRA = 0b11111111;
 
 	EICRB |= 0b11000000; //set INT7 faling edge
 	EIMSK |= 0b10000000; //enable INT&
@@ -93,6 +108,7 @@ void initAdaFruit88Matrix()
  {
 	initAdaFruit88Matrix();	
 	initPlayState();//init state
+	wait(500);
 
 	while(1)
 	{	
@@ -102,12 +118,16 @@ void initAdaFruit88Matrix()
 		case PlayState:
 			playState();
 			break;
-		case Winstate:
+		case WinState:
 			winState();
 			break;
+		case LossState:
+			lossState();
+			break;
 		}
-		write_board_data();	//write data to adafruit matrix 
-		wait(150);
+		//PORTA = bulletCount;		
+		write_board_data();	//write data to adafruit matrix 		
+		wait(150);			
 	}
 	 return 1;
  }
@@ -118,16 +138,21 @@ void initAdaFruit88Matrix()
 	 state = PlayState;
 	 //reset player, bullets and target
 	 resetPlayer();
-	 resetBullet();
+	 resetBulletPosition();
+	 resetBulletCount();
 	 resetTargetLine();
+	 //set score
+	 writeScoreToLcd();
  }
 
  //state of playing, logic for players, bullets and targets.
  void playState(void)
  {
 	int win = 1;//win condition met	
-	playerLogic();
-	bulletLogic();	
+
+	updatePlayerPosition();
+	updateBullet();
+	
 
 	//check win condition
 	for(int i = 0; i < 8; i++)
@@ -144,47 +169,78 @@ void initAdaFruit88Matrix()
 	//draw targets
 	fillTargetLineToBoard();
 
+	
 	if(win == 1)
 	{
-		state = Winstate;
+		state = WinState;			
 	}
+	else if(bulletCount <= 0)
+	{
+		state = LossState;
+	}	
  }
 
  void winState(void)
  {
-	//show smiley
-	show_smiley();
-	wait(5000);//wait a second	
+	//show happy smiley
+	show_happySmiley();
+	writeMessageToLcd("Win!");
+	wait(5000);//wait 5 seconds	
 	initPlayState();
  }
+
+  void lossState(void)
+  {
+	//show sad smiley
+	show_sadSmiley();
+	writeResultToLcd();
+	wait(5000);
+	score = 0;
+	initPlayState();
+  }
 
  void resetPlayer(void)
  {
 	player = 0;
  }
 
- void playerLogic(void)
+ void updatePlayerPosition(void)
  {
 	 //player logic
 	 player++;	//set player 1 to the right
 	 player %= 8; //player cap [0,7], when on position 8 back to position 0
  }
 
- void resetBullet(void)
+ void resetBulletPosition(void)
  {
 	bulletWay = 6;//reset bulletway
-	bulletFired = -1;//reset bullet fired
+	bulletFired = -1;//reset bullet fired	
  }
 
- void bulletLogic(void)
+ void resetBulletCount(void)
+ {
+	bulletCount = 20;
+ }
+
+ void updateBullet(void)
  {	
 	if(bulletFired >= 0)//is bullet on his way?
 	{		
 		bulletWay--; //set bullet 1 up
 		if(bulletWay < 0)// reached line of target, bullet cap [6,0]
 		{
+			if(target[bulletFired] == 1)
+			{
+				score++;
+				writeScoreToLcd();					
+			}
+			else
+			{
+				writeRemainingBullets();	
+			}			
 			target[bulletFired] = 0;//bullet hit target, target is destroyed
-			resetBullet();
+			
+			resetBulletPosition();
 		}
 	}
  }
@@ -207,3 +263,34 @@ void initAdaFruit88Matrix()
 			setLed(0,i,Led_On);
 	 }
  }
+
+ void setLcd(void)
+ {
+	set_cursor(0);
+	display_clear();
+ }
+
+ void writeScoreToLcd(void)
+ {
+	setLcd();
+	display_text_int("Score: ",score);
+ }
+
+ void writeResultToLcd(void)
+ {
+	setLcd();
+	display_text_int("Result: ",score);
+ }
+	
+void writeRemainingBullets(void)
+{
+	setLcd();
+	display_text_int("Bullets: ",bulletCount);
+}
+
+void writeMessageToLcd(char *str)
+{
+	setLcd();
+	display_text(str);
+}
+
